@@ -1,0 +1,6 @@
+2025-01-29 19:59:33,110 - __main__ - INFO - Rooms displayed successfully.
+2025-01-29 19:59:36,022 - __main__ - INFO - Rooms displayed successfully.
+2025-01-29 20:01:53,308 - __main__ - INFO - Room added: 401, Type: suite, Price: 5000.0
+2025-01-29 20:02:07,533 - __main__ - WARNING - No reservations found in database.
+2025-01-29 20:02:14,587 - __main__ - INFO - Rooms displayed successfully.
+2025-01-29 20:05:34,595 - __main__ - INFO - Admin exited the CLI panel.
