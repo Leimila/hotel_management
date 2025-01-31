@@ -1,11 +1,13 @@
 # import sqlite3
+# import os
 
-# DATABASE_NAME = "hotel.db"
+# # Set correct database path (prevents errors when running from different locations)
+# DATABASE_NAME = os.path.join(os.path.dirname(__file__), "hotel.db")
 
 # def get_db_connection():
 #     """Establish a connection to the SQLite database."""
 #     conn = sqlite3.connect(DATABASE_NAME)
-#     conn.row_factory = sqlite3.Row  # Allows access to columns by name
+#     conn.row_factory = sqlite3.Row  # Allows accessing columns by name
 #     return conn
 
 # def execute_query(conn, query, params=()):
@@ -30,6 +32,7 @@
 # def create_tables():
 #     """Create necessary tables if they do not exist."""
 #     conn = get_db_connection()
+    
 #     queries = [
 #         """CREATE TABLE IF NOT EXISTS rooms (
 #             room_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +64,7 @@
 #         execute_query(conn, query)
 
 #     conn.close()
-#     print("Database tables created successfully.")
+#     print("✅ Database tables ensured.")
 
 # # Run table creation when this script is executed
 # if __name__ == "__main__":
@@ -69,14 +72,18 @@
 import sqlite3
 import os
 
-# Set correct database path (prevents errors when running from different locations)
+# Set correct database path dynamically
 DATABASE_NAME = os.path.join(os.path.dirname(__file__), "hotel.db")
 
 def get_db_connection():
-    """Establish a connection to the SQLite database."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    conn.row_factory = sqlite3.Row  # Allows accessing columns by name
-    return conn
+    """Establish and return a connection to the SQLite database."""
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        conn.row_factory = sqlite3.Row  # Access columns by name
+        return conn
+    except sqlite3.Error as e:
+        print(f"❌ Database connection error: {e}")
+        return None
 
 def execute_query(conn, query, params=()):
     """Execute a query that modifies the database (INSERT, UPDATE, DELETE)."""
@@ -84,23 +91,33 @@ def execute_query(conn, query, params=()):
         cursor = conn.cursor()
         cursor.execute(query, params)
         conn.commit()
+        return cursor.lastrowid  # Return the last inserted row ID (useful for user/booking IDs)
     except sqlite3.Error as e:
-        print(f"Database error: {e}")
+        print(f"❌ Database error: {e}\nQuery: {query}\nParams: {params}")
     finally:
-        cursor.close()
+        if cursor:
+            cursor.close()
 
 def fetch_query(conn, query, params=()):
     """Execute a SELECT query and return results."""
-    cursor = conn.cursor()
-    cursor.execute(query, params)
-    results = cursor.fetchall()
-    cursor.close()
-    return results
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+        return results
+    except sqlite3.Error as e:
+        print(f"❌ Database error: {e}\nQuery: {query}\nParams: {params}")
+        return []
+    finally:
+        if cursor:
+            cursor.close()
 
 def create_tables():
     """Create necessary tables if they do not exist."""
     conn = get_db_connection()
-    
+    if not conn:
+        return  # Exit if connection fails
+
     queries = [
         """CREATE TABLE IF NOT EXISTS rooms (
             room_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,11 +145,14 @@ def create_tables():
         );"""
     ]
     
-    for query in queries:
-        execute_query(conn, query)
-
-    conn.close()
-    print("✅ Database tables ensured.")
+    try:
+        for query in queries:
+            execute_query(conn, query)
+        print("✅ Database tables ensured.")
+    except Exception as e:
+        print(f"❌ Error creating tables: {e}")
+    finally:
+        conn.close()
 
 # Run table creation when this script is executed
 if __name__ == "__main__":
