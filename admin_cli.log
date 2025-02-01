@@ -16,3 +16,39 @@
 2025-01-30 13:39:38,157 - cli.admin_cli - INFO - Admin exited the CLI panel.
 2025-01-30 19:54:19,632 - cli.admin_cli - INFO - Rooms displayed successfully.
 2025-01-30 19:58:14,261 - cli.admin_cli - INFO - Admin exited the CLI panel.
+2025-01-31 17:45:41,461 - __main__ - WARNING - Failed login attempt for username: beryl.
+2025-01-31 17:45:41,461 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 17:48:00,375 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 17:48:00,375 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 17:48:55,817 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 17:48:55,817 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 18:07:15,812 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 18:07:15,812 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 18:21:07,852 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 18:21:07,852 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 18:21:20,593 - __main__ - INFO - Admin admin logged in successfully.
+2025-01-31 18:39:56,553 - __main__ - WARNING - Failed login attempt for username: admon.
+2025-01-31 18:39:56,553 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 18:40:11,648 - __main__ - INFO - Admin admin logged in successfully.
+2025-01-31 18:41:45,636 - __main__ - INFO - Room added: 402, Type: standard, Price: 3000.0
+2025-01-31 18:42:05,993 - __main__ - INFO - Rooms displayed successfully.
+2025-01-31 18:43:15,262 - __main__ - WARNING - No reservations found in database.
+2025-01-31 19:17:10,960 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 19:17:10,960 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 19:17:44,313 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 19:17:44,313 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 19:18:02,490 - __main__ - WARNING - Failed login attempt for username: admin.
+2025-01-31 19:18:02,490 - __main__ - WARNING - Admin access denied due to failed login.
+2025-01-31 19:24:55,742 - __main__ - INFO - Admin admin logged in successfully.
+2025-01-31 19:25:02,362 - __main__ - WARNING - No reservations found in database.
+2025-01-31 19:55:02,678 - __main__ - INFO - Admin exited the CLI panel.
+2025-01-31 19:55:15,408 - __main__ - INFO - Admin admin logged in successfully.
+2025-01-31 19:55:28,057 - __main__ - WARNING - No reservations found in database.
+2025-01-31 20:01:09,448 - __main__ - INFO - Admin admin logged in successfully.
+2025-01-31 20:01:25,648 - __main__ - INFO - Room deleted: 2
+2025-01-31 20:01:32,685 - __main__ - INFO - Rooms displayed successfully.
+2025-01-31 20:04:08,288 - __main__ - INFO - Room deleted: 301
+2025-01-31 20:04:18,831 - __main__ - INFO - Rooms displayed successfully.
+2025-01-31 20:17:40,968 - __main__ - INFO - Admin admin logged in successfully.
+2025-01-31 20:18:00,162 - __main__ - INFO - Room 302 deleted successfully from database.
+2025-01-31 22:35:31,786 - __main__ - WARNING - Invalid menu choice entered.

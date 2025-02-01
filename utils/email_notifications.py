@@ -105,10 +105,9 @@ def send_booking_email(user_email, username, room_type, check_in_date, check_out
     admin_sent = send_email(subject, ADMIN_EMAIL, f"Admin Notification:\n{username} made a new booking.\n{room_type} from {check_in_date} to {check_out_date}", "Admin")
     
     # Only log success for user email
-    if user_sent:
-        print("✅ Booking confirmation sent successfully to user.")
+    
     if admin_sent:
-        print("✅ Admin notified of new booking.")
+        print("✅ The management has been notified of new booking.")
 
 # ✅ Send welcome email (for new users)
 def send_welcome_email(user_email, username):
@@ -128,7 +127,7 @@ def send_welcome_email(user_email, username):
     
     # Only log success for user email
     if user_sent:
-        print("✅ Welcome email sent successfully to user.")
+        print("✅ check your email for confirmation.")
 
 if __name__ == "__main__":
     print("Running test emails...")
