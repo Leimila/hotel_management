@@ -21,6 +21,7 @@ def create_tables():
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL
+            is_admin INTEGER DEFAULT 0
         );
     """)
 

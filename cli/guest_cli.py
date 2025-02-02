@@ -1,228 +1,181 @@
-# # from database.db_connection import fetch_query
-# # from cli.registered_cli import register_user, book_room
 
-# # def check_room_availability(conn, check_in_date, check_out_date):
-# #     """Check available rooms for a given date range."""
-# #     query = """
-# #         SELECT room_number, room_type, price
-# #         FROM rooms
-# #         WHERE is_available = 1 AND room_id NOT IN (
-# #             SELECT room_id FROM reservations
-# #             WHERE NOT (check_out_date <= ? OR check_in_date >= ?)
-# #         );
-# #     """
-# #     return fetch_query(conn, query, (check_in_date, check_out_date))
-
-# # def guest_menu(conn):
-# #     """Guest user menu."""
-# #     while True:
-# #         print("\n🛎️ Guest Menu:")
-# #         print("1. Check Room Availability")
-# #         print("2. Register")
-# #         print("3. Book a Room")
-# #         print("4. Logout (Return to Main Menu)")
-# #         print("5. Exit (Close Application)")
-
-# #         choice = input("Enter your choice: ")
-
-# #         if choice == "1":
-# #             check_in_date = input("Enter check-in date (YYYY-MM-DD): ")
-# #             check_out_date = input("Enter check-out date (YYYY-MM-DD): ")
-            
-# #             rooms = check_room_availability(conn, check_in_date, check_out_date)
-            
-# #             if rooms:
-# #                 print("\nAvailable Rooms:")
-# #                 for room in rooms:
-# #                     print(f"Room: {room[0]}, Type: {room[1]}, Price: ${room[2]}")
-# #             else:
-# #                 print("No rooms available for the selected dates.")
-
-# #         elif choice == "2":
-# #             register_user(conn)  # Calls the function to register a new user.
-
-# #         elif choice == "3":
-# #             book_room(conn)  # Calls the function to book a room.
-
-# #         elif choice == "4":
-# #             print("Logging out... Returning to the main menu.")
-# #             return  # Returns to the main menu.
-
-# #         elif choice == "5":
-# #             print("Exiting the system... Goodbye!")
-# #             exit()  # Closes the application.
-
-# #         else:
-# #             print("Invalid choice. Please try again.")
-
-# # if __name__ == "__main__":
-# #     from database.db_connection import get_db_connection
-
-# #     conn = get_db_connection()
-# #     guest_menu(conn)
-
-
-
-# from database.db_connection import fetch_query
-# from cli.registered_cli import register_user, book_room
-
-# # To track whether the user is registered or not
-# is_registered = False  
-
-# def check_room_availability(conn, check_in_date, check_out_date):
-#     """Check available rooms for a given date range."""
-#     query = """
-#         SELECT room_number, room_type, price
-#         FROM rooms
-#         WHERE is_available = 1 AND room_id NOT IN (
-#             SELECT room_id FROM reservations
-#             WHERE NOT (check_out_date <= ? OR check_in_date >= ?)
-#         );
-#     """
-#     return fetch_query(conn, query, (check_in_date, check_out_date))
-
-# def guest_menu(conn):
-#     """Guest user menu."""
-#     global is_registered  # Track registration status
-
-#     while True:
-#         print("\n🛎️ Guest Menu:")
-#         print("1. Check Room Availability")
-#         print("2. Register")
-#         print("3. Book a Room")
-#         print("4. Logout (Return to Main Menu)")
-#         print("5. Exit (Close Application)")
-
-#         choice = input("Enter your choice: ")
-
-#         if choice == "1":
-#             check_in_date = input("Enter check-in date (YYYY-MM-DD): ")
-#             check_out_date = input("Enter check-out date (YYYY-MM-DD): ")
-            
-#             rooms = check_room_availability(conn, check_in_date, check_out_date)
-            
-#             if rooms:
-#                 print("\nAvailable Rooms:")
-#                 for room in rooms:
-#                     print(f"Room: {room[0]}, Type: {room[1]}, Price: ${room[2]}")
-#             else:
-#                 print("No rooms available for the selected dates.")
-
-#         elif choice == "2":
-#             register_user(conn)  # Calls the function to register a new user.
-#             is_registered = True  # Mark user as registered after successful registration.
-
-#         elif choice == "3":
-#             if not is_registered:
-#                 print("\n⚠️ Warning: You need to register before booking a room.")
-#                 print("Please select option 2 to register first.\n")
-#             else:
-#                 book_room(conn)  # Calls the function to book a room.
-
-#         elif choice == "4":
-#             print("Logging out... Returning to the main menu.")
-#             return  # Returns to the main menu.
-
-#         elif choice == "5":
-#             print("Exiting the system... Goodbye!")
-#             exit()  # Closes the application.
-
-#         else:
-#             print("Invalid choice. Please try again.")
-
-# if __name__ == "__main__":
-#     from database.db_connection import get_db_connection
-
-#     conn = get_db_connection()
-#     guest_menu(conn)
-import re
+import sqlite3
+from database.db_connection import get_db_connection, execute_query, fetch_query
+from utils.email_notifications import send_booking_email, send_welcome_email  # Assuming email functions are in utils
 from datetime import datetime
-from database.db_connection import fetch_query
-from cli.registered_cli import register_user, book_room, view_my_reservations
 
-def is_valid_date(date_str):
-    """Check if the input is a valid date format (YYYY-MM-DD)."""
+def register_user(conn):
+    """Register a new user and send a confirmation email."""
+    print("\n\033[1;34m🔹 Register a New Account\033[0m")
+    username = input("Enter your username: ").strip()
+    email = input("Enter your email: ").strip()
+    password = input("Enter a password: ").strip()  # Store as plain text
+
+    # Check if email already exists
+    existing_user = fetch_query(conn, "SELECT user_id FROM users WHERE email = ?;", (email,))
+    if existing_user:
+        print("\033[1;31m❌ This email is already registered. Try logging in.\033[0m")
+        return
+
+    # Insert user into the database WITHOUT hashing the password
+    query = "INSERT INTO users (username, email, password) VALUES (?, ?, ?);"
+    execute_query(conn, query, (username, email, password))  # Store plain text password
+
+    # Fetch the newly registered user ID
+    user = fetch_query(conn, "SELECT user_id FROM users WHERE email = ?;", (email,))
+    
+    if user:
+        user_id = user[0]["user_id"]
+        print(f"\033[1;32m🎉 Welcome, {username}! Registration successful. You are now logged in.\033[0m")
+
+        # ✅ Send welcome email
+        send_welcome_email(email, username)
+
+        registered_user_menu(conn, user_id)  # Redirect to user menu
+    else:
+        print("\033[1;31m❌ Registration failed. Please try again.\033[0m")
+
+def login_user(conn):
+    """Allow users to log in."""
+    print("\n\033[1;34m🔐 Login to Your Account\033[0m")
+    email = input("Enter your email: ").strip()
+    password = input("Enter your password: ").strip()  # Compare plain text password
+
+    # Verify user credentials WITHOUT hashing
+    query = "SELECT user_id, username FROM users WHERE email = ? AND password = ?;"
+    user = fetch_query(conn, query, (email, password))  # Compare plain text password
+
+    if user:
+        user_id, username = user[0]["user_id"], user[0]["username"]
+        print(f"\033[1;32m✅ Welcome back, {username}!\033[0m")
+        registered_user_menu(conn, user_id)  # Redirect to user menu
+    else:
+        print("\033[1;31m❌ Invalid email or password.\033[0m")
+
+def view_my_reservations(conn, user_id):
+    """View reservations for a logged-in user."""
+    query = """
+        SELECT r.reservation_id, rm.room_number, rm.room_type, r.check_in_date, r.check_out_date, r.status
+        FROM reservations r
+        JOIN rooms rm ON r.room_id = rm.room_id
+        WHERE r.user_id = ?;
+    """
+    reservations = fetch_query(conn, query, (user_id,))
+
+    if reservations:
+        print("\n\033[1;36m📋 Your Reservations:\033[0m")
+        for res in reservations:
+            print(f"Reservation ID: {res['reservation_id']}, Room: {res['room_number']} ({res['room_type']}), Check-in: {res['check_in_date']}, Check-out: {res['check_out_date']}, Status: {res['status']}")
+    else:
+        print("\033[1;31m❌ You have no reservations.\033[0m")
+
+def book_room(conn, user_id):
+    """Allow registered users to book a room and send a confirmation email."""
     try:
-        datetime.strptime(date_str, "%Y-%m-%d")
-        return True
-    except ValueError:
-        return False  
-
-def check_room_availability(conn):
-    """Check available rooms for a given date range."""
-    while True:
         check_in_date = input("Enter check-in date (YYYY-MM-DD): ").strip()
-        if check_in_date == '6':  
-            exit()  # Exit application
-        if check_in_date == '0':  
-            return  # Return to the main menu
-        if not is_valid_date(check_in_date):
-            print("❌ Invalid date format. Please enter in YYYY-MM-DD format.")
-            continue  
-
         check_out_date = input("Enter check-out date (YYYY-MM-DD): ").strip()
-        if check_out_date == '6':  
-            exit()  
-        if check_out_date == '0':  
-            return  
-        if not is_valid_date(check_out_date):
-            print("❌ Invalid date format. Please enter in YYYY-MM-DD format.")
-            continue  
+
+        try:
+            check_in_date = datetime.strptime(check_in_date, '%Y-%m-%d')
+            check_out_date = datetime.strptime(check_out_date, '%Y-%m-%d')
+        except ValueError:
+            print("\033[1;31m❌ Invalid date format. Please use YYYY-MM-DD.\033[0m")
+            return
 
         query = """
-            SELECT room_number, room_type, price
+            SELECT room_id, room_number, room_type, price
             FROM rooms
-            WHERE is_available = 1 AND room_id NOT IN (
-                SELECT room_id FROM reservations
-                WHERE NOT (check_out_date <= ? OR check_in_date >= ?)
-            );
+            WHERE is_available = 1;
         """
-        rooms = fetch_query(conn, query, (check_in_date, check_out_date))
+        available_rooms = fetch_query(conn, query)
 
-        if rooms:
-            print("\n✅ Available Rooms:")
-            for room in rooms:
-                print(f"Room: {room[0]}, Type: {room[1]}, Price: ${room[2]}")
+        if available_rooms:
+            print("\n\033[1;36m🏨 Available Rooms:\033[0m")
+            for room in available_rooms:
+                print(f"Room ID: {room['room_id']}, Number: {room['room_number']}, Type: {room['room_type']}, Price: ${room['price']}")
+
+            try:
+                room_id = int(input("Enter Room ID to book: ").strip())
+
+                room_check = fetch_query(conn, "SELECT room_number, room_type FROM rooms WHERE room_id = ? AND is_available = 1;", (room_id,))
+                if not room_check:
+                    print("\033[1;31m❌ Invalid Room ID or Room is not available.\033[0m")
+                    return
+
+                room_info = f"Room {room_check[0]['room_number']} ({room_check[0]['room_type']})"
+
+                query = """
+                    INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date, status)
+                    VALUES (?, ?, ?, ?, 'confirmed');
+                """
+                reservation_id = execute_query(conn, query, (user_id, room_id, check_in_date.strftime('%Y-%m-%d'), check_out_date.strftime('%Y-%m-%d')))
+
+                if reservation_id:
+                    execute_query(conn, "UPDATE rooms SET is_available = 0 WHERE room_id = ?;", (room_id,))
+
+                    user = fetch_query(conn, "SELECT email, username FROM users WHERE user_id = ?;", (user_id,))
+                    
+                    if user:
+                        user_email, username = user[0]["email"], user[0]["username"]
+                        send_booking_email(user_email, username, room_info, check_in_date.strftime('%Y-%m-%d'), check_out_date.strftime('%Y-%m-%d'))
+                        print("\033[1;32m✅ Booking successful! Check your email for confirmation.\033[0m")
+                    else:
+                        print("\033[1;31m❌ User not found. Unable to send email confirmation.\033[0m")
+                else:
+                    print("\033[1;31m❌ Booking failed. Please try again.\033[0m")
+
+            except ValueError:
+                print("\033[1;31m❌ Invalid input. Please enter a numerical Room ID.\033[0m")
         else:
-            print("❌ No rooms available for the selected dates.")
-        return  
+            print("\033[1;31m❌ No available rooms at the moment.\033[0m")
 
-def guest_menu(conn):
-    """Guest user menu."""
+    except Exception as e:
+        print(f"\033[1;31m❌ Error: {e}\033[0m")
+
+def registered_user_menu(conn, user_id):
+    """Menu for registered users."""
     while True:
-        print("\n🌟 Welcome to the Hotel Booking System 🌟")
-        print("1. Check Room Availability")
-        print("2. Register")
+        print("\n\033[1;36m👤 You can proceed to:\033[0m")
+        print("1. Book a Room ")
+        print("2. View My Reservations")
         print("3. Logout")
         print("4. Exit")
 
         choice = input("Enter your choice: ").strip()
 
         if choice == "1":
-            check_room_availability(conn)
-
+            book_room(conn, user_id)
         elif choice == "2":
-            username = register_user(conn)  # Function should return username
-            # print(f"\n🔹 {username} registration successful! Press 0 to return to the main menu.")
-            # while True:
-            #     back_choice = input().strip()
-            #     if back_choice == '0':
-            #         break  
-          
-
+            view_my_reservations(conn, user_id)
         elif choice == "3":
-            print("Logging out...\n")
-            return  
-
+            print("\033[1;33mLogging out...\n\033[0m")
+            return  # Exit to main menu
         elif choice == "4":
-            print("Exiting... Goodbye!")
-            exit()  
-
+            print("\033[1;33mExiting... Goodbye!\033[0m")
+            exit()
         else:
-            print("❌ Invalid choice. Please enter a number between 1 and 6.")
+            print("\033[1;31mInvalid choice. Please try again.\033[0m")
+
+def main():
+    conn = get_db_connection()
+
+    while True:
+        print("\n\033[1;34m🔑 Welcome to the Hotel Booking System\033[0m")
+        print("1. Register")
+        print("2. Login")
+        print("3. Exit")
+
+        choice = input("Enter your choice: ").strip()
+
+        if choice == "1":
+            register_user(conn)
+        elif choice == "2":
+            login_user(conn)
+        elif choice == "3":
+            print("\033[1;33mGoodbye! 👋\033[0m")
+            break
+        else:
+            print("\033[1;31mInvalid choice. Please try again.\033[0m")
 
 if __name__ == "__main__":
-    from database.db_connection import get_db_connection
-
-    conn = get_db_connection()
-    guest_menu(conn)
+    main()

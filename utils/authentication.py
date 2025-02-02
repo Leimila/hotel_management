@@ -1,53 +1,67 @@
-# utils/authentication.py
-from database.db_connection import fetch_query, execute_query
+
+from database.db_connection import get_db_connection, fetch_query, execute_query
+from colorama import Fore, Style, init
+
+# Initialize colorama for Windows compatibility
+init(autoreset=True)
 
 def login(conn):
     """Login system."""
-    username = input("Enter username: ")
-    password = input("Enter password: ")
+    username = input(Fore.CYAN + "🔹 Enter username: ")
+    password = input(Fore.CYAN + "🔹 Enter password: ")
 
     query = "SELECT * FROM users WHERE username = ? AND password = ?;"
     user = fetch_query(conn, query, (username, password))
 
     if user:
-        print("✅ Login successful!")
-        return user[0]  # Returns the user record
+        print(Fore.GREEN + "✅ Login successful!")
+        print(Fore.YELLOW + f"🎉 Welcome, {user[0][1]}! You are now logged in.")
     else:
-        print("❌ Invalid username or password.")
-        return None
+        print(Fore.RED + "❌ Invalid username or password.")
 
 def register_user(conn):
     """Register a new user."""
-    username = input("Enter username: ")
-    password = input("Enter password: ")
-    email = input("Enter email: ")
+    username = input(Fore.CYAN + "🔹 Enter username: ")
+    password = input(Fore.CYAN + "🔹 Enter password: ")
+    email = input(Fore.CYAN + "🔹 Enter email: ")
 
     query = "INSERT INTO users (username, password, email) VALUES (?, ?, ?);"
     execute_query(conn, query, (username, password, email))
 
-    print("✅ Registration successful!")
-
-def is_admin(user):
-    """Check if user is an admin."""
-    return user[4] == 1  # Column index 4 is `is_admin`
+    print(Fore.GREEN + "✅ Registration successful!")
+    print(Fore.YELLOW + "📩 Check your email for a confirmation message.")
 
 def main():
-    """Main function to test the authentication system."""
-    print("Welcome to the Authentication System!")
+    """Main function to handle authentication system."""
+    print(Fore.MAGENTA + "🌟 Welcome to the Authentication System! 🌟")
 
-    # You can simulate a connection here by replacing with an actual connection object
-    # Assuming you have a function to get the DB connection
-    conn = None  # Replace with your actual connection fetching function
+    # Establish database connection
+    conn = get_db_connection()
 
-    # For example purposes, you can call login or register functions
-    print("\n--- Login ---")
-    user = login(conn)
+    if conn is None:
+        print(Fore.RED + "❌ Failed to connect to the database.")
+        return
 
-    if user:
-        print(f"User {user[1]} logged in successfully.")
+    while True:
+        print(Fore.BLUE + "\n📌 Menu:")
+        print(Fore.CYAN + "1️⃣  Login")
+        print(Fore.CYAN + "2️⃣  Register")
+        print(Fore.YELLOW + "🚪 Press Enter  to Exit")
+        
+        choice = input(Fore.WHITE + "➡️  Enter your choice: ")
 
-    print("\n--- Register User ---")
-    register_user(conn)
+        if choice == "1":
+            print(Fore.MAGENTA + "\n🔑 --- Login ---")
+            login(conn)
+        elif choice == "2":
+            print(Fore.MAGENTA + "\n📝 --- Register User ---")
+            register_user(conn)
+        elif choice == "0" or choice == "1" or choice == "":
+            print(Fore.RED + "👋 Exiting the system. Goodbye!")
+            conn.close()  # Ensure database connection is closed
+            break  # Exit the loop and the program
+        else:
+            print(Fore.RED + "❌ Invalid choice. Please enter 1, 2, or 0.")
 
 if __name__ == "__main__":
-    main()  # Calls the main function when the module is run
+    main()

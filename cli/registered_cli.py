@@ -1,372 +1,192 @@
-
-
-# import sqlite3
-# import hashlib
-# from database.db_connection import get_db_connection, execute_query, fetch_query
-# from utils.email_notifications import send_booking_email, send_welcome_email  # Assuming email functions are in utils
-
-# # Function to hash the password securely (you can use a more secure method such as bcrypt if needed)
-# def hash_password(password):
-#     """Hash the password using SHA-256."""
-#     return hashlib.sha256(password.encode()).hexdigest()
-
-# def register_user(conn):
-#     """Register a new user and send a confirmation email."""
-#     print("\n🔹 Register a New Account")
-#     username = input("Enter your username: ")
-#     email = input("Enter your email: ")
-#     password = input("Enter a password: ")
-
-#     hashed_password = hash_password(password)
-
-#     # Check if email already exists
-#     existing_user = fetch_query(conn, "SELECT user_id FROM users WHERE email = ?;", (email,))
-#     if existing_user:
-#         print("❌ This email is already registered. Try logging in.")
-#         return
-
-#     # Insert user into the database
-#     query = "INSERT INTO users (username, email, password) VALUES (?, ?, ?);"
-#     execute_query(conn, query, (username, email, hashed_password))
-
-#     # Fetch the newly registered user ID
-#     user = fetch_query(conn, "SELECT user_id FROM users WHERE email = ?;", (email,))
-    
-#     if user:
-#         user_id = user[0][0]
-#         print(f"✅ User '{username}' registered successfully!\n")
-#         print(f"🎉 Welcome, {username}! You are now logged in.")
-
-#         # ✅ Send welcome email
-#         send_welcome_email(email, username)
-
-#         registered_user_menu(conn, user_id)  # Redirect to user menu
-#     else:
-#         print("❌ Registration failed. Please try again.")
-
-# def login_user(conn):
-#     """Allow users to log in."""
-#     print("\n🔐 Login to Your Account")
-#     email = input("Enter your email: ")
-#     password = input("Enter your password: ")
-#     hashed_password = hash_password(password)
-
-#     # Verify user credentials
-#     query = "SELECT user_id, username FROM users WHERE email = ? AND password = ?;"
-#     user = fetch_query(conn, query, (email, hashed_password))
-
-#     if user:
-#         user_id, username = user[0]
-#         print(f"✅ Welcome back, {username}!")
-#         registered_user_menu(conn, user_id)  # Redirect to user menu
-#     else:
-#         print("❌ Invalid email or password.")
-
-# def view_my_reservations(conn, user_id):
-#     """View reservations for a logged-in user."""
-#     query = """
-#         SELECT r.reservation_id, rm.room_number, rm.room_type, r.check_in_date, r.check_out_date, r.status
-#         FROM reservations r
-#         JOIN rooms rm ON r.room_id = rm.room_id
-#         WHERE r.user_id = ?;
-#     """
-#     reservations = fetch_query(conn, query, (user_id,))
-
-#     if reservations:
-#         print("\n📋 Your Reservations:")
-#         for res in reservations:
-#             print(f"Reservation ID: {res[0]}, Room: {res[1]} ({res[2]}), Check-in: {res[3]}, Check-out: {res[4]}, Status: {res[5]}")
-#     else:
-#         print("❌ You have no reservations.")
-
-# def book_room(conn, user_id):
-#     """Allow registered users to book a room and send a confirmation email."""
-#     check_in_date = input("Enter check-in date (YYYY-MM-DD): ")
-#     check_out_date = input("Enter check-out date (YYYY-MM-DD): ")
-
-#     # Fetch available rooms
-#     query = """
-#         SELECT room_id, room_number, room_type, price
-#         FROM rooms
-#         WHERE is_available = 1;
-#     """
-#     available_rooms = fetch_query(conn, query)
-
-#     if available_rooms:
-#         print("\n🏨 Available Rooms:")
-#         for room in available_rooms:
-#             print(f"Room ID: {room[0]}, Number: {room[1]}, Type: {room[2]}, Price: ${room[3]}")
-
-#         room_id = input("Enter Room ID to book: ")
-
-#         # Check if the selected room exists and is available
-#         room_check = fetch_query(conn, "SELECT room_number, room_type FROM rooms WHERE room_id = ? AND is_available = 1;", (room_id,))
-#         if not room_check:
-#             print("❌ Invalid Room ID or Room is not available.")
-#             return
-
-#         room_info = f"Room {room_check[0][0]} ({room_check[0][1]})"
-
-#         # Insert reservation
-#         query = """
-#             INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date, status)
-#             VALUES (?, ?, ?, ?, 'confirmed');
-#         """
-#         execute_query(conn, query, (user_id, room_id, check_in_date, check_out_date))
-
-#         # Update room availability
-#         execute_query(conn, "UPDATE rooms SET is_available = 0 WHERE room_id = ?;", (room_id,))
-
-#         # Get user email and username
-#         user = fetch_query(conn, "SELECT email, username FROM users WHERE user_id = ?;", (user_id,))
-#         user_email, username = user[0]
-
-#         # ✅ Send booking confirmation email to the user only
-#         send_booking_email(user_email, username, room_info, check_in_date, check_out_date)
-
-#         print("✅ Booking successful! Check your email for confirmation.")
-#     else:
-#         print("❌ No available rooms at the moment.")
-
-# def registered_user_menu(conn, user_id):
-#     """Menu for registered users."""
-#     while True:
-#         print("\n👤 Registered User Menu:")
-#         print("1. View My Reservations")
-#         print("2. Book a Room")
-#         print("3. Logout")
-
-#         choice = input("Enter your choice: ")
-
-#         if choice == "1":
-#             view_my_reservations(conn, user_id)
-#         elif choice == "2":
-#             book_room(conn, user_id)
-#         elif choice == "3":
-#             print("Logging out...\n")
-#             return  # Exit to main menu
-#         else:
-#             print("Invalid choice. Please try again.")
-
-# def main():
-#     conn = get_db_connection()
-
-#     while True:
-#         print("\n🔑 Welcome to the Hotel Booking System")
-#         print("1. Register")
-#         print("2. Login")
-#         print("3. Exit")
-
-#         choice = input("Enter your choice: ")
-
-#         if choice == "1":
-#             register_user(conn)
-#         elif choice == "2":
-#             login_user(conn)
-#         elif choice == "3":
-#             print("Goodbye! 👋")
-#             break
-#         else:
-#             print("Invalid choice. Please try again.")
-
-# if __name__ == "__main__":
-#     main()
-import sqlite3
-import hashlib
-from database.db_connection import get_db_connection, execute_query, fetch_query
-from utils.email_notifications import send_booking_email, send_welcome_email  # Assuming email functions are in utils
+import re
 from datetime import datetime
+from database.db_connection import fetch_query, execute_query
+from colorama import Fore, Style, init
 
-# Function to hash passwords securely
-def hash_password(password):
-    """Hash the password using SHA-256."""
-    return hashlib.sha256(password.encode()).hexdigest()
+# Initialize colorama for Windows compatibility
+init()
 
-def register_user(conn):
-    """Register a new user and send a confirmation email."""
-    print("\n🔹 Register a New Account")
-    username = input("Enter your username: ").strip()
-    email = input("Enter your email: ").strip()
-    password = input("Enter a password: ").strip()
-
-    hashed_password = hash_password(password)
-
-    # Check if email already exists
-    existing_user = fetch_query(conn, "SELECT user_id FROM users WHERE email = ?;", (email,))
-    if existing_user:
-        print("❌ This email is already registered. Try logging in.")
-        return
-
-    # Insert user into the database
-    query = "INSERT INTO users (username, email, password) VALUES (?, ?, ?);"
-    execute_query(conn, query, (username, email, hashed_password))
-
-    # Fetch the newly registered user ID
-    user = fetch_query(conn, "SELECT user_id FROM users WHERE email = ?;", (email,))
-    
-    if user:
-        user_id = user[0]["user_id"]
-       
-        print(f"🎉 Welcome, {username}! Registration  successfull ,You are now logged in.")
-
-        # ✅ Send welcome email
-        send_welcome_email(email, username)
-
-        registered_user_menu(conn, user_id)  # Redirect to user menu
-    else:
-        print("❌ Registration failed. Please try again.")
-
-def login_user(conn):
-    """Allow users to log in."""
-    print("\n🔐 Login to Your Account")
-    email = input("Enter your email: ").strip()
-    password = input("Enter your password: ").strip()
-    hashed_password = hash_password(password)
-
-    # Verify user credentials
-    query = "SELECT user_id, username FROM users WHERE email = ? AND password = ?;"
-    user = fetch_query(conn, query, (email, hashed_password))
-
-    if user:
-        user_id, username = user[0]["user_id"], user[0]["username"]
-        print(f"✅ Welcome back, {username}!")
-        registered_user_menu(conn, user_id)  # Redirect to user menu
-    else:
-        print("❌ Invalid email or password.")
-
-def view_my_reservations(conn, user_id):
-    """View reservations for a logged-in user."""
-    query = """
-        SELECT r.reservation_id, rm.room_number, rm.room_type, r.check_in_date, r.check_out_date, r.status
-        FROM reservations r
-        JOIN rooms rm ON r.room_id = rm.room_id
-        WHERE r.user_id = ?;
-    """
-    reservations = fetch_query(conn, query, (user_id,))
-
-    if reservations:
-        print("\n📋 Your Reservations:")
-        for res in reservations:
-            print(f"Reservation ID: {res['reservation_id']}, Room: {res['room_number']} ({res['room_type']}), Check-in: {res['check_in_date']}, Check-out: {res['check_out_date']}, Status: {res['status']}")
-    else:
-        print("❌ You have no reservations.")
-
-def book_room(conn, user_id):
-    """Allow registered users to book a room and send a confirmation email."""
+def is_valid_date(date_str):
+    """Check if the input is a valid future date format (YYYY-MM-DD)."""
     try:
-        check_in_date = input("Enter check-in date (YYYY-MM-DD): ").strip()
-        check_out_date = input("Enter check-out date (YYYY-MM-DD): ").strip()
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+        if date.date() >= datetime.today().date():
+            return True
+        else:
+            print(Fore.RED + "❌ Date cannot be in the past. Please enter a future date." + Style.RESET_ALL)
+            return False
+    except ValueError:
+        print(Fore.RED + "❌ Invalid date format. Please enter in YYYY-MM-DD format." + Style.RESET_ALL)
+        return False  
 
-        # Convert to datetime for validation
-        try:
-            check_in_date = datetime.strptime(check_in_date, '%Y-%m-%d')
-            check_out_date = datetime.strptime(check_out_date, '%Y-%m-%d')
-        except ValueError:
-            print("❌ Invalid date format. Please use YYYY-MM-DD.")
-            return
+def check_room_availability(conn):
+    """Check available rooms for a given date range."""
+    while True:
+        print(Fore.CYAN + "\n🔍 Check Room Availability" + Style.RESET_ALL)
+        check_in_date = input(Fore.YELLOW + "Enter check-in date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
+        if check_in_date == '6':  
+            exit()  # Exit application
+        if check_in_date == '0':  
+            return  # Return to the main menu
+        if not is_valid_date(check_in_date):
+            continue  
 
-        # Fetch available rooms
+        check_out_date = input(Fore.YELLOW + "Enter check-out date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
+        if check_out_date == '6':  
+            exit()  
+        if check_out_date == '0':  
+            return  
+        if not is_valid_date(check_out_date):
+            continue  
+
         query = """
             SELECT room_id, room_number, room_type, price
             FROM rooms
-            WHERE is_available = 1;
+            WHERE is_available = 1 AND room_id NOT IN (
+                SELECT room_id FROM reservations
+                WHERE NOT (check_out_date <= ? OR check_in_date >= ?)
+            );
         """
-        available_rooms = fetch_query(conn, query)
+        rooms = fetch_query(conn, query, (check_in_date, check_out_date))
 
-        if available_rooms:
-            print("\n🏨 Available Rooms:")
-            for room in available_rooms:
-                print(f"Room ID: {room['room_id']}, Number: {room['room_number']}, Type: {room['room_type']}, Price: ${room['price']}")
-
-            try:
-                room_id = int(input("Enter Room ID to book: ").strip())
-
-                # Check if the selected room exists and is available
-                room_check = fetch_query(conn, "SELECT room_number, room_type FROM rooms WHERE room_id = ? AND is_available = 1;", (room_id,))
-                if not room_check:
-                    print("❌ Invalid Room ID or Room is not available.")
-                    return
-
-                room_info = f"Room {room_check[0]['room_number']} ({room_check[0]['room_type']})"
-
-                # Insert reservation
-                query = """
-                    INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date, status)
-                    VALUES (?, ?, ?, ?, 'confirmed');
-                """
-                reservation_id = execute_query(conn, query, (user_id, room_id, check_in_date.strftime('%Y-%m-%d'), check_out_date.strftime('%Y-%m-%d')))
-
-                if reservation_id:
-                    # Update room availability
-                    execute_query(conn, "UPDATE rooms SET is_available = 0 WHERE room_id = ?;", (room_id,))
-
-                    # Get user email and username
-                    user = fetch_query(conn, "SELECT email, username FROM users WHERE user_id = ?;", (user_id,))
-                    
-                    if user:
-                        user_email, username = user[0]["email"], user[0]["username"]
-                        send_booking_email(user_email, username, room_info, check_in_date.strftime('%Y-%m-%d'), check_out_date.strftime('%Y-%m-%d'))
-                        print("✅ Booking successful! Check your email for confirmation.")  # ✅ Message appears only after success.
-                    else:
-                        print("❌ User not found. Unable to send email confirmation.")
-                else:
-                    print("❌ Booking failed. Please try again.")
-
-            except ValueError:
-                print("❌ Invalid input. Please enter a numerical Room ID.")
+        if rooms:
+            print(Fore.GREEN + "\n✅ Available Rooms:" + Style.RESET_ALL)
+            for room in rooms:
+                print(Fore.BLUE + f"Room Number: {room[1]}, Type: {room[2]}, Price: ${room[3]}" + Style.RESET_ALL)
         else:
-            print("❌ No available rooms at the moment.")
+            print(Fore.RED + "❌ No rooms available for the selected dates." + Style.RESET_ALL)
+        return  
 
-    except Exception as e:
-        print(f"❌ Error: {e}")
+def login(conn):
+    """Login system (Required for booking or viewing reservations)."""
+    print(Fore.CYAN + "\n🔑 User Login" + Style.RESET_ALL)
+    username = input(Fore.YELLOW + "Enter username: " + Style.RESET_ALL)
+    password = input(Fore.YELLOW + "Enter password: " + Style.RESET_ALL)
 
-def registered_user_menu(conn, user_id):
-    """Menu for registered users."""
+    query = "SELECT * FROM users WHERE username = ?;"
+    user = fetch_query(conn, query, (username,))
+
+    if user:
+        try:
+            stored_password = user[0]['password']
+            if password == stored_password:
+                print(Fore.GREEN + "✅ Login successful!" + Style.RESET_ALL)
+                return user[0]['user_id']
+            else:
+                print(Fore.RED + "❌ Invalid username or password." + Style.RESET_ALL)
+                return None
+        except KeyError as e:
+            print(Fore.RED + f"❌ Error: Missing expected data {e}. User data might be incomplete." + Style.RESET_ALL)
+            return None
+    else:
+        print(Fore.RED + "❌ User not found." + Style.RESET_ALL)
+        return None
+
+def book_room(conn, user_id):
+    """Handle booking a room after successful login."""
+    print(Fore.CYAN + "\n🛏️ Book a Room" + Style.RESET_ALL)
+    check_in_date = input(Fore.YELLOW + "Enter check-in date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
+    if check_in_date == '6':
+        exit()  
+    if not is_valid_date(check_in_date):
+        return  
+
+    check_out_date = input(Fore.YELLOW + "Enter check-out date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
+    if check_out_date == '6':  
+        exit()  
+    if not is_valid_date(check_out_date):
+        return  
+
+    room_id = input(Fore.YELLOW + "Enter room number: " + Style.RESET_ALL).strip()
+
+    # Ensure the room ID exists before booking
+    query = "SELECT room_id FROM rooms WHERE room_id = ? AND is_available = 1;"
+    room = fetch_query(conn, query, (room_id,))
+    
+    if not room:
+        print(Fore.RED + "❌ Invalid room ID or room not available." + Style.RESET_ALL)
+        return
+
+    # Insert reservation into the database
+    query = """
+        INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date)
+        VALUES (?, ?, ?, ?);
+    """
+    execute_query(conn, query, (user_id, room_id, check_in_date, check_out_date))
+
+    # Mark room as unavailable after booking
+    query = "UPDATE rooms SET is_available = 0 WHERE room_id = ?;"
+    execute_query(conn, query, (room_id,))
+
+    print(Fore.GREEN + "✅ Room booked successfully!" + Style.RESET_ALL)
+
+def view_reservations(conn, user_id):
+    """View reservations for a logged-in user."""
+    query = """
+        SELECT r.room_number, res.check_in_date, res.check_out_date
+        FROM reservations res
+        JOIN rooms r ON res.room_id = r.room_id
+        WHERE res.user_id = ?;
+    """
+    reservations = fetch_query(conn, query, (user_id,))
+    if reservations:
+        print(Fore.GREEN + "\n✅ Your Reservations:" + Style.RESET_ALL)
+        for reservation in reservations:
+            print(Fore.BLUE + f"Room Number: {reservation[0]}, Check-in: {reservation[1]}, Check-out: {reservation[2]}" + Style.RESET_ALL)
+    else:
+        print(Fore.RED + "❌ No reservations found." + Style.RESET_ALL)
+
+def registered_user_menu(conn):
+    """Registered user menu."""
+    user_id = None  # Track if user is logged in
+    
     while True:
-        print("\n👤 You can proceed to:")
-        print("1. Book a Room ")
-        print("2. View My Reservations")
-        print("3. Logout")
-        print("4. Exit")
+        print(Fore.MAGENTA + "\n🌟 Welcome Back to the Hotel Booking System 🌟" + Style.RESET_ALL)
+        print("1. Check Room Availability")
         
-
-
-        choice = input("Enter your choice: ").strip()
-
-        if choice == "1":
-            book_room(conn, user_id)
-        elif choice == "1":
-            view_my_reservations(conn, user_id)
-        elif choice == "3":
-            print("Logging out...\n")
-            return  # Exit to main menu
-        elif choice == "4":
-            print("Exiting... Goodbye!")
-            exit()
-       
+        if user_id:
+            print("2. Book a Room")  # Only show 'Book a Room' if the user is logged in
+            print("3. View My Reservations")  # Only show 'View My Reservations' if the user is logged in
         else:
-            print("Invalid choice. Please try again.")
+            print("2. Login to Book a Room")
+            print("3. Login to View My Reservations")
+        
+        print("4. Logout")
+        print("5. Exit")
 
-def main():
-    conn = get_db_connection()
-
-    while True:
-        print("\n🔑 Welcome to the Hotel Booking System")
-        print("1. Register")
-        print("2. Login")
-        print("3. Exit")
-
-        choice = input("Enter your choice: ").strip()
+        choice = input(Fore.YELLOW + "Enter your choice: " + Style.RESET_ALL).strip()
 
         if choice == "1":
-            register_user(conn)
+            check_room_availability(conn)
+
         elif choice == "2":
-            login_user(conn)
+            if user_id:
+                # Proceed to book a room directly if the user is logged in
+                book_room(conn, user_id)  # Pass the logged-in user_id to book a room
+            else:
+                # Login before booking a room
+                user_id = login(conn)
+        
         elif choice == "3":
-            print("Goodbye! 👋")
-            break
+            if user_id:
+                # Proceed to view reservations directly if the user is logged in
+                view_reservations(conn, user_id)  # Pass the logged-in user_id to view reservations
+            else:
+                # Login before viewing reservations
+                user_id = login(conn)
+        
+        elif choice == "4":
+            print(Fore.CYAN + "Logging out...\n" + Style.RESET_ALL)
+            user_id = None  # Set user_id to None to log out
+
+        elif choice == "5":
+            print(Fore.RED + "Exiting... Goodbye!" + Style.RESET_ALL)
+            exit()
+
         else:
-            print("Invalid choice. Please try again.")
+            print(Fore.RED + "❌ Invalid choice. Please enter a number between 1 and 5." + Style.RESET_ALL)
 
 if __name__ == "__main__":
-    main()
+    from database.db_connection import get_db_connection
+    conn = get_db_connection()
+    registered_user_menu(conn)

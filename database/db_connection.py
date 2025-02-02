@@ -69,6 +69,7 @@ def create_tables():
             check_in_date TEXT NOT NULL,
             check_out_date TEXT NOT NULL,
             status TEXT DEFAULT 'confirmed',
+            UNIQUE(room_id, check_in_date),  -- Prevents double booking of same room on same date
             FOREIGN KEY (user_id) REFERENCES users (user_id),
             FOREIGN KEY (room_id) REFERENCES rooms (room_id)
         );"""
