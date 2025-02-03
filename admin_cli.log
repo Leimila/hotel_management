@@ -159,3 +159,8 @@
 2025-02-03 21:19:35,155 - __main__ - INFO - Room added: 450, Type: Deluxe, Price: 1000.0
 2025-02-03 21:19:51,547 - __main__ - INFO - Room added: 221, Type: Suite, Price: 1000.0
 2025-02-03 21:19:58,544 - __main__ - INFO - Admin exited the CLI panel.
+2025-02-03 21:37:18,596 - __main__ - INFO - Admin admin logged in successfully.
+2025-02-03 21:37:22,111 - __main__ - INFO - Rooms displayed successfully.
+2025-02-03 21:38:01,525 - __main__ - INFO - Room added: 112, Type: Deluxe, Price: 3000.0
+2025-02-03 21:38:06,595 - __main__ - INFO - Rooms displayed successfully.
+2025-02-03 21:40:13,116 - __main__ - INFO - Admin exited the CLI panel.
