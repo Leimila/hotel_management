@@ -13,7 +13,6 @@ def get_db_connection():
     except sqlite3.Error as e:
         print(f"❌ Database connection error: {e}")
         return None
-
 def execute_query(conn, query, params=()):
     """Execute a query that modifies the database (INSERT, UPDATE, DELETE)."""
     try:

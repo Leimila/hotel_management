@@ -72,18 +72,6 @@ def view_rooms(conn):
         print(Fore.RED + "⚠️ No rooms found.")
         logger.warning("No rooms found in database.")
 
-def view_reservations(conn):
-    """Display all reservations."""
-    reservations = fetch_query(conn, "SELECT * FROM reservations;")
-    if reservations:
-        print(Fore.BLUE + "\n📅 All Reservations:")
-        for res in reservations:
-            print(Fore.YELLOW + f"Reservation ID: {res[0]}, User ID: {res[1]}, Room ID: {res[2]}, Check-in: {res[3]}, Check-out: {res[4]}, Status: {res[5]}")
-        logger.info("Reservations displayed successfully.")
-    else:
-        print(Fore.RED + "⚠️ No reservations found.")
-        logger.warning("No reservations found in database.")
-
 def delete_room(conn):
     """Allow admin to delete a room."""
     room_number = input(Fore.CYAN + "Enter room number to delete: ")
@@ -119,9 +107,8 @@ def admin_cli():
     while True:
         print(Fore.GREEN + "\n1️⃣ Add Room")
         print(Fore.GREEN + "2️⃣ View Rooms")
-        print(Fore.GREEN + "3️⃣ View Reservations")
-        print(Fore.GREEN + "4️⃣ Delete Room")
-        print(Fore.RED + "5️⃣ Exit")
+        print(Fore.GREEN + "3️⃣ Delete Room")
+        print(Fore.RED + "4️⃣ Exit")
 
         choice = input(Fore.CYAN + "Enter your choice: ")
 
@@ -130,10 +117,8 @@ def admin_cli():
         elif choice == "2":
             view_rooms(conn)
         elif choice == "3":
-            view_reservations(conn)
-        elif choice == "4":
             delete_room(conn)
-        elif choice == "5":
+        elif choice == "4":
             print(Fore.MAGENTA + "👋 Exiting Admin CLI.")
             logger.info("Admin exited the CLI panel.")
             break

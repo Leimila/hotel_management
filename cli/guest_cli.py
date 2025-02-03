@@ -1,8 +1,21 @@
-
 import sqlite3
 from database.db_connection import get_db_connection, execute_query, fetch_query
-from utils.email_notifications import send_booking_email, send_welcome_email  # Assuming email functions are in utils
+from utils.email_notifications import send_booking_email, send_welcome_email
 from datetime import datetime
+from colorama import Fore, Style
+
+def is_valid_date(date_str):
+    """Check if the input is a valid future date format (YYYY-MM-DD)."""
+    try:
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+        if date.date() >= datetime.today().date():
+            return True
+        else:
+            print(Fore.RED + "❌ Date cannot be in the past. Please enter a future date." + Style.RESET_ALL)
+            return False
+    except ValueError:
+        print(Fore.RED + "❌ Invalid date format. Please enter in YYYY-MM-DD format." + Style.RESET_ALL)
+        return False
 
 def register_user(conn):
     """Register a new user and send a confirmation email."""
@@ -72,15 +85,24 @@ def view_my_reservations(conn, user_id):
 def book_room(conn, user_id):
     """Allow registered users to book a room and send a confirmation email."""
     try:
-        check_in_date = input("Enter check-in date (YYYY-MM-DD): ").strip()
-        check_out_date = input("Enter check-out date (YYYY-MM-DD): ").strip()
+        while True:
+            check_in_date = input("Enter check-in date (YYYY-MM-DD): ").strip()
+            if not is_valid_date(check_in_date):
+                continue  # Retry if the date is not valid
 
-        try:
+            check_out_date = input("Enter check-out date (YYYY-MM-DD): ").strip()
+            if not is_valid_date(check_out_date):
+                continue  # Retry if the date is not valid
+
+            # Check if the dates make sense (check-out cannot be before check-in)
             check_in_date = datetime.strptime(check_in_date, '%Y-%m-%d')
             check_out_date = datetime.strptime(check_out_date, '%Y-%m-%d')
-        except ValueError:
-            print("\033[1;31m❌ Invalid date format. Please use YYYY-MM-DD.\033[0m")
-            return
+
+            if check_out_date <= check_in_date:
+                print(Fore.RED + "❌ Check-out date must be later than check-in date." + Style.RESET_ALL)
+                continue
+
+            break  # If dates are valid, break out of the loop
 
         query = """
             SELECT room_id, room_number, room_type, price

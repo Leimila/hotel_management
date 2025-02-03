@@ -2,9 +2,58 @@ import re
 from datetime import datetime
 from database.db_connection import fetch_query, execute_query
 from colorama import Fore, Style, init
+import requests
+from requests.auth import HTTPBasicAuth
+import base64
 
 # Initialize colorama for Windows compatibility
 init()
+
+# Replace with your credentials from Safaricom Developer Portal
+CONSUMER_KEY = "WMCSmuK7QTDVJmcE5afjdcpuGrnOqgC0MgjA9QGwUBcjciKF"
+CONSUMER_SECRET = "OQdsS2rbTIK1ExAEoLXVc4MosHaeRft6O6IfLp0DWqfGqpOhp6D9JY891hW78EWq"
+BUSINESS_SHORTCODE = "174379"  # Use your PayBill/Till number
+PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
+CALLBACK_URL = "https://8c76-102-0-15-200.ngrok-free.app/daraja/callback"
+
+def get_access_token():
+    url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+    response = requests.get(url, auth=HTTPBasicAuth(CONSUMER_KEY, CONSUMER_SECRET))
+    access_token = response.json().get("access_token")
+    return access_token
+
+def generate_password():
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    password = base64.b64encode(f"{BUSINESS_SHORTCODE}{PASSKEY}{timestamp}".encode()).decode()
+    return password, timestamp
+
+def stk_push(phone_number, amount):
+    access_token = get_access_token()
+    url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+
+    password, timestamp = generate_password()
+
+    payload = {
+        "BusinessShortCode": BUSINESS_SHORTCODE,
+        "Password": password,
+        "Timestamp": timestamp,
+        "TransactionType": "CustomerPayBillOnline",
+        "Amount": amount,
+        "PartyA": phone_number,
+        "PartyB": BUSINESS_SHORTCODE,
+        "PhoneNumber": phone_number,
+        "CallBackURL": CALLBACK_URL,
+        "AccountReference": "Order123",
+        "TransactionDesc": "Payment for Order123"
+    }
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
 
 def is_valid_date(date_str):
     """Check if the input is a valid future date format (YYYY-MM-DD)."""
@@ -51,11 +100,12 @@ def check_room_availability(conn):
 
         if rooms:
             print(Fore.GREEN + "\n✅ Available Rooms:" + Style.RESET_ALL)
-            for room in rooms:
-                print(Fore.BLUE + f"Room Number: {room[1]}, Type: {room[2]}, Price: ${room[3]}" + Style.RESET_ALL)
+            for idx, room in enumerate(rooms):
+                print(Fore.BLUE + f"{idx + 1}. Room Number: {room[1]}, Type: {room[2]}, Price: ${room[3]}" + Style.RESET_ALL)
+            return rooms  # Return the list of available rooms
         else:
             print(Fore.RED + "❌ No rooms available for the selected dates." + Style.RESET_ALL)
-        return  
+            return None  
 
 def login(conn):
     """Login system (Required for booking or viewing reservations)."""
@@ -85,40 +135,51 @@ def login(conn):
 def book_room(conn, user_id):
     """Handle booking a room after successful login."""
     print(Fore.CYAN + "\n🛏️ Book a Room" + Style.RESET_ALL)
-    check_in_date = input(Fore.YELLOW + "Enter check-in date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
-    if check_in_date == '6':
-        exit()  
-    if not is_valid_date(check_in_date):
-        return  
-
-    check_out_date = input(Fore.YELLOW + "Enter check-out date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
-    if check_out_date == '6':  
-        exit()  
-    if not is_valid_date(check_out_date):
-        return  
-
-    room_id = input(Fore.YELLOW + "Enter room number: " + Style.RESET_ALL).strip()
-
-    # Ensure the room ID exists before booking
-    query = "SELECT room_id FROM rooms WHERE room_id = ? AND is_available = 1;"
-    room = fetch_query(conn, query, (room_id,))
     
-    if not room:
-        print(Fore.RED + "❌ Invalid room ID or room not available." + Style.RESET_ALL)
-        return
+    # Check room availability and display available rooms
+    rooms = check_room_availability(conn)
+    if not rooms:
+        return  # No rooms available to book
 
-    # Insert reservation into the database
-    query = """
-        INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date)
-        VALUES (?, ?, ?, ?);
-    """
-    execute_query(conn, query, (user_id, room_id, check_in_date, check_out_date))
+    try:
+        choice = int(input(Fore.YELLOW + "Enter the number of the room you want to book: " + Style.RESET_ALL))
+        if 1 <= choice <= len(rooms):
+            room_id = rooms[choice - 1][0]  # Get room_id from the selected room
+            check_in_date = input(Fore.YELLOW + "Enter check-in date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
+            if not is_valid_date(check_in_date):
+                return  
 
-    # Mark room as unavailable after booking
-    query = "UPDATE rooms SET is_available = 0 WHERE room_id = ?;"
-    execute_query(conn, query, (room_id,))
+            check_out_date = input(Fore.YELLOW + "Enter check-out date (YYYY-MM-DD): " + Style.RESET_ALL).strip()
+            if not is_valid_date(check_out_date):
+                return  
 
-    print(Fore.GREEN + "✅ Room booked successfully!" + Style.RESET_ALL)
+            # Insert reservation into the database
+            query = """
+                INSERT INTO reservations (user_id, room_id, check_in_date, check_out_date)
+                VALUES (?, ?, ?, ?);
+            """
+            execute_query(conn, query, (user_id, room_id, check_in_date, check_out_date))
+
+            # Mark room as unavailable after booking
+            query = "UPDATE rooms SET is_available = 0 WHERE room_id = ?;"
+            execute_query(conn, query, (room_id,))
+
+            print(Fore.GREEN + "✅ Room booked successfully!" + Style.RESET_ALL)
+
+            # Prompt for phone number and initiate payment
+            phone_number = input(Fore.YELLOW + "Enter your phone number (e.g., 254703647000): " + Style.RESET_ALL).strip()
+            amount = rooms[choice - 1][3]  # Get the room price from the selected room
+
+            # Initiate STK Push payment
+            response = stk_push(phone_number, amount)
+            if response.get('ResponseCode') == '0':
+                print(Fore.GREEN + "✅ Payment initiated successfully. Please complete the payment on your phone." + Style.RESET_ALL)
+            else:
+                print(Fore.RED + "❌ Failed to initiate payment. Please try again." + Style.RESET_ALL)
+        else:
+            print(Fore.RED + "❌ Invalid choice. Please try again." + Style.RESET_ALL)
+    except ValueError:
+        print(Fore.RED + "⚠️ Invalid input. Please enter a number." + Style.RESET_ALL)
 
 def view_reservations(conn, user_id):
     """View reservations for a logged-in user."""
@@ -149,7 +210,7 @@ def registered_user_menu(conn):
             print("3. View My Reservations")  # Only show 'View My Reservations' if the user is logged in
         else:
             print("2. Login to Book a Room")
-            print("3. Login to View My Reservations")
+            print("3. View My Reservations")
         
         print("4. Logout")
         print("5. Exit")
