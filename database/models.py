@@ -63,7 +63,8 @@ def create_tables():
             ('203', 'Standard', 3000, 1),
             ('301', 'Suite', 5000, 1),
             ('302', 'Suite', 5000, 1),
-            ('303', 'Suite', 5000, 1)
+            ('303', 'Suite', 5000, 1),
+            ('223', 'Suite', 5000, 2),
         ]
         cursor.executemany("INSERT INTO rooms (room_number, room_type, price, is_available) VALUES (?, ?, ?, ?);", rooms_data)
         print("✅ Default rooms inserted.")
